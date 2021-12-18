@@ -48,7 +48,7 @@ class RandomForestMSE:
             subspace_size = int(d * self.feature_subsample_size)
 
         if X_val is not None:
-            RMSE_history = np.zeros(self.n_estimators)
+            MSE_history = np.zeros(self.n_estimators)
 
         for i in range(self.n_estimators):
 
@@ -67,12 +67,12 @@ class RandomForestMSE:
 
             self.n_algorithms = i + 1
             if X_val is not None:
-                RMSE_history[i] = np.mean(
+                MSE_history[i] = np.mean(
                     (y_val - self.predict(X_val))**2
-                    ) ** 0.5
+                    )
 
         if X_val is not None:
-            return RMSE_history
+            return MSE_history
 
     def predict(self, X):
         """
@@ -132,7 +132,7 @@ class GradientBoostingMSE:
         d = X.shape[1]
 
         if X_val is not None:
-            RMSE_history = np.zeros(self.n_estimators)
+            MSE_history = np.zeros(self.n_estimators)
 
         # we shall save f-array for improved efficiency
         f = np.zeros(N)
@@ -168,12 +168,12 @@ class GradientBoostingMSE:
 
             self.n_algorithms = i + 1
             if X_val is not None:
-                RMSE_history[i] = np.mean(
+                MSE_history[i] = np.mean(
                     (y_val - self.predict(X_val))**2
-                    ) ** 0.5
+                    )
 
         if X_val is not None:
-            return RMSE_history
+            return MSE_history
 
     def predict(self, X):
         """
