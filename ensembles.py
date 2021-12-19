@@ -1,4 +1,6 @@
 import numpy as np
+from time import time
+from numpy.random import standard_normal
 from scipy.optimize import minimize_scalar
 from sklearn.tree import DecisionTreeRegressor
 
@@ -40,15 +42,18 @@ class RandomForestMSE:
         y_val : numpy ndarray
             Array of size n_val_objects
         """
-        N = X.shape[0]  # Вообще говоря, размер выборки - l
+        N = X.shape[0]
         d = X.shape[1]
         if self.feature_subsample_size is None:
             subspace_size = d // 3
         else:
             subspace_size = int(d * self.feature_subsample_size)
+        np.random.seed(1)
 
         if X_val is not None:
-            MSE_history = np.zeros(self.n_estimators)
+            history = {'MSE': np.zeros(self.n_estimators),
+                       'time': np.zeros(self.n_estimators)}
+            start_time = time()
 
         for i in range(self.n_estimators):
 
@@ -67,12 +72,15 @@ class RandomForestMSE:
 
             self.n_algorithms = i + 1
             if X_val is not None:
-                MSE_history[i] = np.mean(
+                # Не учитываем время предсказания
+                history['time'][i] = time() - start_time
+                history['MSE'][i] = np.mean(
                     (y_val - self.predict(X_val))**2
                     )
+                start_time = time()
 
         if X_val is not None:
-            return MSE_history
+            return history
 
     def predict(self, X):
         """
@@ -114,7 +122,7 @@ class GradientBoostingMSE:
         self.feature_subsample_size = feature_subsample_size
         self.args = trees_parameters
         self.estimators = [
-            DecisionTreeRegressor(**trees_parameters)
+            DecisionTreeRegressor(max_depth=max_depth, **trees_parameters)
             for i in range(n_estimators)
         ]
         self.estimator_features = [0] * n_estimators
@@ -132,11 +140,13 @@ class GradientBoostingMSE:
         d = X.shape[1]
 
         if X_val is not None:
-            MSE_history = np.zeros(self.n_estimators)
+            history = {'MSE': np.zeros(self.n_estimators),
+                       'time': np.zeros(self.n_estimators)}
+            start_time = time()
 
         # we shall save f-array for improved efficiency
         f = np.zeros(N)
-
+        np.random.seed(1)
         if self.feature_subsample_size is None:
             subspace_size = d // 3
         else:
@@ -152,8 +162,8 @@ class GradientBoostingMSE:
             X_train = X[:, features]
 
             # First step
-            # Q = MSE(f, y) => gradQ_f = f_{T-1, i} - y_i
-            self.estimators[i].fit(X_train, y - f)
+            # Q = MSE(f, y) => gradQ_f = 2(f_{T-1} - y)
+            self.estimators[i].fit(X_train, 2*(y - f))
             b = self.estimators[i].predict(X_train)
 
             # Second step
@@ -168,12 +178,14 @@ class GradientBoostingMSE:
 
             self.n_algorithms = i + 1
             if X_val is not None:
-                MSE_history[i] = np.mean(
+                history['time'][i] = time() - start_time
+                history['MSE'][i] = np.mean(
                     (y_val - self.predict(X_val))**2
                     )
+                start_time = time()
 
         if X_val is not None:
-            return MSE_history
+            return history
 
     def predict(self, X):
         """
